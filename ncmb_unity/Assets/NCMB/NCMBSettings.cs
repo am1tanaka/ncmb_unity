@@ -31,8 +31,6 @@ namespace NCMB
 		private static string _applicationKey = "";
 		//クライアントキー
 		private static string _clientKey = "";
-		//ANDROID SENDER キー
-		private static string _androidSenderId = "";
 		//シグネチャチェックフラグ
 		internal static bool _responseValidationFlag = false;
 		//初回のみ実行フラグ
@@ -58,9 +56,6 @@ namespace NCMB
 		[SerializeField]
 		internal bool
 			useAnalytics = false;
-		[SerializeField]
-		internal string
-			androidSenderId = "";
 		//[SerializeField]
 		//internal bool
 		//getLocation = false;
@@ -111,15 +106,6 @@ namespace NCMB
 			}
 			set {
 				_clientKey = value;
-			}
-		}
-
-		/// <summary>
-		/// Android SenderIdの取得を行います。
-		/// </summary>
-		public static string AndroidSenderId {
-			get {
-				return _androidSenderId;
 			}
 		}
 
@@ -196,34 +182,28 @@ namespace NCMB
 		/// </summary>
 		/// <param name="usePush">true:プッシュ通知有効　false:プッシュ通知無効</param>
 		/// <param name="useAnalytics">true:開封通知有効　false:開封通知無効</param>
-		/// <param name="androidSenderId">Android SenderId</param>
 		/// <param name="getLocation">true:位置情報有効　false:位置情報無効</param>
-		private static void RegisterPush (bool usePush, bool useAnalytics, String androidSenderId, bool getLocation = false)
+		private static void RegisterPush (bool usePush, bool useAnalytics, bool getLocation = false)
 		{
 		
 			//Push関連設定
 			_usePush = usePush;
 			_useAnalytics = useAnalytics;
-			_androidSenderId = androidSenderId;
 
 			// Register
 			if (usePush) {
 				//Installation基本情報を取得
 				NCMBManager.CreateInstallationProperty ();
-				if (!getLocation) {
-					#if UNITY_ANDROID
-					NCMBPush.Register (androidSenderId);
-					#elif UNITY_IOS
+#if UNITY_IOS
+                if (!getLocation)
+                {
 					NCMBPush.Register (useAnalytics);
-					#endif
-				} else {
-					#if UNITY_ANDROID
-					//not Analytics
-					NCMBPush.RegisterWithLocation (androidSenderId);
-					#elif UNITY_IOS
+                }
+                else
+                {
 					NCMBPush.RegisterWithLocation ();
-					#endif
-				}
+                }
+#endif
 			}
 		}
 
@@ -247,10 +227,8 @@ namespace NCMB
 				_responseValidationFlag = responseValidation;
 				DontDestroyOnLoad (base.gameObject);
 				NCMBSettings.Initialize (this.applicationKey, this.clientKey, this.domainURL, this.apiVersion);
-				//NCMBSettings.RegisterPush(this.usePush, this.androidSenderId, this.getLocation);
 				filePath = Application.persistentDataPath;
 				currentInstallationPath = filePath + "/currentInstallation";
-				NCMBSettings.RegisterPush (this.usePush, this.useAnalytics, this.androidSenderId, false);
 			}
 		}
 

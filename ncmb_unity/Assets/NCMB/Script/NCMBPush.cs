@@ -29,10 +29,7 @@ namespace NCMB
 	[NCMBClassName ("push")]
 	public class NCMBPush:NCMBObject
 	{
-		#if UNITY_ANDROID
-		static AndroidJavaClass m_AJClass;
-		
-#elif UNITY_IOS
+#if UNITY_IOS
 		[DllImport ("__Internal")]
 		private static extern void registerNotification (bool useAnalytics);
 
@@ -41,13 +38,11 @@ namespace NCMB
 
 		[DllImport ("__Internal")]
 		private static extern void clearAll ();
-		#endif
+#endif
 		/*		** 初期化 ***/
 		static NCMBPush ()
 		{
-			#if UNITY_ANDROID && !UNITY_EDITOR
-			m_AJClass = new AndroidJavaClass("com.nifty.cloud.mb.ncmbgcmplugin.GCMInit");
-			#endif
+			
 		}
 
 		/// <summary>
@@ -57,48 +52,26 @@ namespace NCMB
 		public NCMBPush () : base ()	//継承元のコンストラクタを実施するため
 		{
 		}
-		#if UNITY_ANDROID
-		public static void Register (string senderId) 	
-		{ 	
-			if (!string.IsNullOrEmpty (senderId)) { 	
-				
-
-#if !UNITY_EDITOR
-				m_AJClass.CallStatic("InitSenderId", senderId); 	
-		#endif
-			} 	
-		} 	
-
-#elif UNITY_IOS
+#if UNITY_IOS
 		public static void Register (bool useAnalytics)
 		{ 	
-			#if !UNITY_EDITOR 	
-		registerNotification(useAnalytics); 	
-			#endif 	
-		} 	
-		#endif
-		#if UNITY_ANDROID
-	public static void RegisterWithLocation (string senderId) 	
-	{ 	
-		if (!string.IsNullOrEmpty (senderId)) { 	
-
 #if !UNITY_EDITOR
-			m_AJClass.CallStatic("InitSenderIdWithLocation", senderId); 	
-		#endif
+		registerNotification(useAnalytics); 	
+#endif
 		} 	
-	} 	
+#endif
 
-#elif UNITY_IOS
+#if UNITY_IOS
 		/// <summary> 	
 		/// Register for receiving remote notifications (with current location). 	
 		/// </summary> 	
 		internal static void RegisterWithLocation ()
 		{ 	
 			#if !UNITY_EDITOR 	
-	registerNotificationWithLocation(); 	
+	        registerNotificationWithLocation(); 	
 			#endif 	
 		} 	
-		#endif
+#endif
 		/*** Push設定 ***/
 		/// <summary>
 		/// メッセージの取得、または設定を行います。

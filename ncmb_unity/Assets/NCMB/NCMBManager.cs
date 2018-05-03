@@ -35,40 +35,98 @@ using MiniJSON;
 
 namespace NCMB
 {
-	/// <summary>
-	/// プッシュ通知関連のイベントリスナーを操作するクラスです。
-	/// </summary>
-	public class NCMBManager : MonoBehaviour
-	{
-		
-		public virtual void Awake ()
-		{			
-			if (!NCMBSettings._isInitialized) {
-				DontDestroyOnLoad (base.gameObject);
-			}
-		}
+    /// <summary>
+    /// プッシュ通知関連のイベントリスナーを操作するクラスです。
+    /// </summary>
+    public class NCMBManager : MonoBehaviour
+    {
 
-		#if UNITY_IOS
+        public virtual void Awake()
+        {
+            if (!NCMBSettings._isInitialized)
+            {
+                DontDestroyOnLoad(base.gameObject);
+            }
+        }
+
+#if UNITY_ANDROID
+        void Start()
+        {
+            Firebase.Messaging.FirebaseMessaging.TokenReceived += OnTokenReceived;
+            Firebase.Messaging.FirebaseMessaging.MessageReceived += OnMessageReceived; 
+        }
+
+        internal void OnTokenReceived(object sender, Firebase.Messaging.TokenReceivedEventArgs token)
+        {
+            UnityEngine.Debug.Log("*** OnTokenReceived: " + token.Token);
+            //Android O 
+            AndroidJavaClass cls = new AndroidJavaClass("com.nifty.cloud.mb.ncmbgcmplugin.NCMBNotificationUtils");
+            cls.CallStatic("settingDefaultChannels");
+            onTokenReceived(token.Token);
+        }
+
+        public void OnMessageReceived(object sender, Firebase.Messaging.MessageReceivedEventArgs e)
+        {
+            UnityEngine.Debug.Log("*** OnMessageReceived" );
+            //sendMessageToAndroid(e.Message.Data);
+            //OnNotificationReceived("message");
+        }
+
+        private void sendMessageToAndroid(IDictionary<string, string> parameters)
+        {
+            PlayerPrefs.SetString("pushid", "id");
+            using (AndroidJavaObject data = new AndroidJavaObject("java.util.HashMap"))
+            {
+                // Call 'put' via the JNI instead of using helper classes to avoid:
+                //  "JNI: Init'd AndroidJavaObject with null ptr!"
+                IntPtr method_Put = AndroidJNIHelper.GetMethodID(data.GetRawClass(), "put",
+                    "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;");
+
+                object[] args = new object[2];
+                foreach (KeyValuePair<string, string> kvp in parameters)
+                {
+                    using (AndroidJavaObject k = new AndroidJavaObject("java.lang.String", kvp.Key))
+                    {
+                        using (AndroidJavaObject v = new AndroidJavaObject("java.lang.String", kvp.Value))
+                        {
+                            args[0] = k;
+                            args[1] = v;
+                            AndroidJNI.CallObjectMethod(data.GetRawObject(),
+                                method_Put, AndroidJNIHelper.CreateJNIArgArray(args));
+                        }
+                    }
+                }
+                AndroidJavaClass unityPlayerClass = new AndroidJavaClass("com.unity3d.player.UnityPlayer"); 
+                AndroidJavaObject context = unityPlayerClass.GetStatic<AndroidJavaObject>("currentActivity");
+                AndroidJavaClass messageHandlerClass = new AndroidJavaClass("com.nifty.cloud.mb.ncmbgcmplugin.NCMBMessageHandler");
+                messageHandlerClass.CallStatic("onMessageReceived", context, data);
+
+            }
+        }
+
+#endif 
+
+#if UNITY_IOS
 		[DllImport ("__Internal")]
 		private static extern string getInstallationProperty ();
-		#endif
+#endif
 
-		#region Const
+        #region Const
 
-		const string NS = "NCMB_SPLITTER";
+        const string NS = "NCMB_SPLITTER";
 
-		#endregion
+#endregion
 
-		#region Static
+#region Static
 
 		internal static bool Inited { get; set; }
 
 		internal static string _token;
 		internal static IDictionary<string, object> installationDefaultProperty = new Dictionary<string, object> ();
 
-		#endregion
+#endregion
 
-		#region Delegate
+#region Delegate
 
 		/// <summary> 端末登録後のイベントリスナーです。</summary>
 		public delegate void OnRegistrationDelegate (string errorMessage);
@@ -89,9 +147,9 @@ namespace NCMB
 		// <summary> 位置情報失敗。</summary>
 		//public static OnGetLocationFailedDelegate onGetLocationFailed;
 
-		#endregion
+#endregion
 
-		#region Messages which are sent from native
+#region Messages which are sent from native
 
 		void OnRegistration (string message)
 		{
@@ -115,11 +173,11 @@ namespace NCMB
 		}
 
 
-		#endregion
+#endregion
 
-		#region Process notification for iOS only
+#region Process notification for iOS only
 
-		#if UNITY_IOS
+#if UNITY_IOS
 		void Start ()
 		{
 			ClearAfterOneFrame ();
@@ -197,8 +255,8 @@ namespace NCMB
 			NCMBPush push = new NCMBPush ();
 			push.ClearAll ();
 		}
-		#endif
-		#endregion
+#endif
+#endregion
 
 		internal static string SearchPath ()
 		{
@@ -206,17 +264,17 @@ namespace NCMB
 			try {
 				string path = NCMBSettings.currentInstallationPath;
 				//v1の場合
-				#if UNITY_IOS && !UNITY_EDITOR
+#if UNITY_IOS && !UNITY_EDITOR
 				//既存のcurrentInstallationパス
 				path = NCMBSettings.filePath;	//var/mobile/Applications/{GUID}/Documents
 				path = path.Replace ("Documents", "");
 				path += "Library/Private Documents/NCMB/currentInstallation";
-				#elif UNITY_ANDROID && !UNITY_EDITOR
+#elif UNITY_ANDROID && !UNITY_EDITOR
 				//既存のcurrentInstallationパス
 				path = NCMBSettings.filePath;	//data/data/(PackageName)/files
 				path = path.Replace ("files", "");
 				path += "app_NCMB/currentInstallation";
-				#endif
+#endif
 				if (!System.IO.File.Exists (path)) {
 					//v2の場合
 					path = NCMBSettings.currentInstallationPath;
@@ -362,12 +420,12 @@ namespace NCMB
 		internal static void CreateInstallationProperty ()
 		{
 			String jsonString = null;
-			#if UNITY_ANDROID && !UNITY_EDITOR
-			AndroidJavaClass cls = new AndroidJavaClass("com.nifty.cloud.mb.ncmbgcmplugin.GCMInit");
+#if UNITY_ANDROID && !UNITY_EDITOR
+            AndroidJavaClass cls = new AndroidJavaClass("com.nifty.cloud.mb.ncmbgcmplugin.FCMInit");
 			jsonString = cls.CallStatic<string>("getInstallationProperty");
-			#elif UNITY_IOS && !UNITY_EDITOR
+#elif UNITY_IOS && !UNITY_EDITOR
 			jsonString = getInstallationProperty();
-			#endif
+#endif
 			if (jsonString != null) {
 				installationDefaultProperty = Json.Deserialize (jsonString) as Dictionary<string, object>;
 			}
