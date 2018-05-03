@@ -20,6 +20,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.util.Log;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -32,47 +33,9 @@ import org.json.JSONObject;
 import java.util.TimeZone;
 
 //GCMの初期化処理を扱います
-public class GCMInit extends Activity {
+public class FCMInit extends Activity {
 
     private static final int PLAY_SERVICES_RESOLUTION_REQUEST = 9000;
-
-    //Unityから呼び出されます
-    public static void InitSenderId(String _senderId) {
-        final String senderId = _senderId;
-        // Looper prepare
-        UnityPlayer.currentActivity.runOnUiThread(new Runnable() {
-            public void run() {
-                SetSenderId(senderId);
-            }
-        });
-    }
-
-    public static void InitSenderIdWithLocation(String _senderId) {
-        final String senderId = _senderId;
-        // Looper prepare
-        UnityPlayer.currentActivity.runOnUiThread(new Runnable() {
-            public void run() {
-                SetSenderId(senderId);
-            }
-        });
-    }
-
-    //GCMInit.javaから呼び出され、デバイストークンの取得サービスを開始します
-    public static void SetSenderId(String _senderId) {
-        final String senderId = _senderId;
-        // Looper prepare
-        if (checkPlayServices()) {
-            UnityPlayer.currentActivity.runOnUiThread(new Runnable() {
-                public void run() {
-                    Intent intent = new Intent(UnityPlayer.currentActivity, RegistrationIntentService.class);
-                    intent.putExtra("senderId", senderId);
-                    UnityPlayer.currentActivity.startService(intent);
-                }
-            });
-        } else {
-            UnityPlayer.UnitySendMessage("NCMBManager", "OnRegistration", "This device is not supported google-play-services-APK.");
-        }
-    }
 
     /**
      * GooglePlay開発者サービスが有効か確認

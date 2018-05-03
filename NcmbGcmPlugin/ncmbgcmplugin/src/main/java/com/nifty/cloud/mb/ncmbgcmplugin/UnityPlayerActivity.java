@@ -19,12 +19,21 @@ package com.nifty.cloud.mb.ncmbgcmplugin;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+
+import com.google.firebase.MessagingUnityPlayerActivity;
+import com.google.firebase.messaging.MessageForwardingService;
 import com.unity3d.player.UnityPlayer;
 
-public class UnityPlayerActivity extends com.unity3d.player.UnityPlayerActivity {
+public class UnityPlayerActivity extends MessagingUnityPlayerActivity {
 	private ActivityProxyObjectHelper _proxyHelper;
 
+	@Override
 	protected void onCreate(Bundle savedInstanceState) {
+		if (mUnityPlayer != null) {
+			mUnityPlayer.quit();
+			mUnityPlayer = null;
+		}
+
 		super.onCreate(savedInstanceState);
 		
 		try {
@@ -36,17 +45,25 @@ public class UnityPlayerActivity extends com.unity3d.player.UnityPlayerActivity 
 		
 	}
 
+	@Override
 	protected void onNewIntent(Intent intent) {
+		Intent message = new Intent(this, MessageForwardingService.class);
+		message.setAction(MessageForwardingService.ACTION_REMOTE_INTENT);
+		message.putExtras(intent);
+		message.setData(intent.getData());
+		startService(message);
 		super.onNewIntent(intent);
 		setIntent(intent);
 		this._proxyHelper.onNewIntent(intent);
 	}
 
+	@Override
 	protected void onDestroy() {
 		super.onDestroy();
 		this._proxyHelper.invokeZeroParameterMethod("onDestroy");
 	}
 
+	@Override
 	public void onResume() {
 		super.onResume();
 		//リッチプッシュ処理
